@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AltiCorrige">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0c4a6e"/>
+      <stop offset="100%" stop-color="#0e7490"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <path d="M80 380 L180 220 L260 300 L340 160 L432 380 Z" fill="#e0f2fe" opacity="0.95"/>
+  <path d="M80 380 L180 220 L260 300 L200 380 Z" fill="#38bdf8" opacity="0.7"/>
+  <circle cx="380" cy="140" r="36" fill="#fbbf24"/>
+  <path d="M120 400 H392" stroke="#94a3b8" stroke-width="8" stroke-linecap="round"/>
+  <text x="256" y="460" text-anchor="middle" font-family="system-ui,sans-serif" font-size="48" font-weight="700" fill="#e0f2fe">AC</text>
+</svg>

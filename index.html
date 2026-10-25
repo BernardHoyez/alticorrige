@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a5f7a" />
+  <meta name="description" content="AltiCorrige – Correction des altitudes de tracés GPX/KML/KMZ via le service IGN (RGE ALTI)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>AltiCorrige</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
+</head>
+<body>
+  <header class="header">
+    <div class="header-inner">
+      <h1 class="logo">
+        <span class="logo-icon" aria-hidden="true">⛰</span>
+        AltiCorrige
+      </h1>
+      <p class="tagline">Correction d’altitudes GPX / KML / KMZ · Service IGN RGE ALTI</p>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="card upload-card" id="upload-section">
+      <h2>1. Charger un tracé</h2>
+      <p class="hint">Formats acceptés : <strong>GPX</strong>, <strong>KML</strong>, <strong>KMZ</strong></p>
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Zone de dépôt de fichier">
+        <input type="file" id="file-input" accept=".gpx,.kml,.kmz,application/gpx+xml,application/vnd.google-earth.kml+xml,application/vnd.google-earth.kmz" hidden />
+        <div class="dropzone-content">
+          <span class="dropzone-icon">📂</span>
+          <p>Glissez-déposez votre fichier ici<br>ou <span class="link">cliquez pour choisir</span></p>
+        </div>
+      </div>
+      <p id="file-name" class="file-name" hidden></p>
+    </section>
+
+    <section class="card options-card" id="options-section" hidden>
+      <h2>2. Options de correction</h2>
+      <div class="options-grid">
+        <label class="option">
+          <span>Ressource IGN</span>
+          <select id="resource-select">
+            <option value="ign_rge_alti_wld" selected>RGE ALTI (recommandé)</option>
+          </select>
+        </label>
+        <label class="option">
+          <span>Taille des lots (points)</span>
+          <select id="batch-size">
+            <option value="100">100</option>
+            <option value="200" selected>200</option>
+            <option value="500">500</option>
+          </select>
+        </label>
+      </div>
+      <button type="button" id="btn-correct" class="btn btn-primary" disabled>
+        Corriger les altitudes
+      </button>
+      <div id="progress-wrap" class="progress-wrap" hidden>
+        <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+        <p id="progress-text" class="progress-text">0 %</p>
+      </div>
+    </section>
+
+    <section class="card results-card" id="results-section" hidden>
+      <h2>3. Résultats</h2>
+      <div class="stats" id="stats">
+        <div class="stat">
+          <span class="stat-label">Points</span>
+          <span class="stat-value" id="stat-points">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Dénivelé +</span>
+          <span class="stat-value positive" id="stat-dplus">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Dénivelé −</span>
+          <span class="stat-value negative" id="stat-dminus">—</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Altitude min / max</span>
+          <span class="stat-value" id="stat-minmax">—</span>
+        </div>
+      </div>
+
+      <div class="chart-wrap">
+        <canvas id="profile-chart" aria-label="Profil altimétrique"></canvas>
+      </div>
+
+      <div class="export-actions">
+        <button type="button" id="btn-export-gpx" class="btn btn-secondary">Télécharger GPX corrigé</button>
+        <button type="button" id="btn-export-kml" class="btn btn-secondary">Télécharger KML corrigé</button>
+      </div>
+    </section>
+
+    <section class="card info-card">
+      <h2>À propos</h2>
+      <ul class="info-list">
+        <li>Les altitudes sont obtenues via le service public <a href="https://geoservices.ign.fr/services-geoplateforme-altimetrie" target="_blank" rel="noopener">IGN Géoplateforme – Calcul altimétrique</a> (ressource <code>ign_rge_alti_wld</code>).</li>
+        <li>Limite du service : 5 requêtes/s · max. 5 000 points par requête. Les tracés longs sont traités par lots.</li>
+        <li>Les dénivelés +/− sont calculés sur les altitudes corrigées (seuils de bruit minimal appliqués).</li>
+        <li>PWA installable · fonctionne hors-ligne pour l’interface (les corrections nécessitent le réseau).</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>AltiCorrige · Données © IGN · Service open data Géoplateforme</p>
+  </footer>
+
+  <div id="toast" class="toast" hidden role="status"></div>
+
+  <script src="app.js" type="module"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+          .then(reg => {
+            reg.update();
+            // Force check on visibility
+            document.addEventListener('visibilitychange', () => {
+              if (document.visibilityState === 'visible') reg.update();
+            });
+          })
+          .catch(err => console.warn('SW registration failed', err));
+      });
+    }
+  </script>
+</body>
+</html>
